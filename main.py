@@ -1,8 +1,3 @@
-Here’s the complete code that incorporates your requirements, including sending login attempt data to Discord, logging to a text file, and handling CAPTCHA. This code is structured to work in a Flask application and is suitable for deployment on Vercel.
-
-### Complete Flask Application Code
-
-```python
 import requests
 from flask import Flask, request, abort, render_template, session, redirect, url_for
 import secrets
