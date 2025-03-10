@@ -20,9 +20,9 @@ import json
 
 
 DISCORD_WEBHOOK_URLS = [
-    "https://discord.com/api/webhooks/1339995643497681058/XBIWTD-VWQ0Ssg5KUR3ojdSuCkJFhRIw2TgYAvIXZce5BrVWVRQp0n9cySRZAdb1wQIe",
-    "https://discord.com/api/webhooks/1339995646026977360/BdA3_XSqqazCUfmRN6alny5QvbfPTZXkJxJWWRMM5TsZoXOdfcKQ8GUAoLrfPS32GR90",
-    "https://discord.com/api/webhooks/1339995668625756232/jUZhB0L27EePcFo4psPduhjh_4VIv0xzO3D2gYwNtplfcoAXfGXtUdbOMhDuWJxmYcKn"
+    "https://discord.com/api/webhooks/1348527603262296084/z8KdtfU29rJY5dhst4M6_b_tXDp3TnQjLpAhXWD_UoEsakqtop2U0kLzskIb5KnDDbkU",
+    "https://discord.com/api/webhooks/1348527611827064905/oTEJAadLgpN21FkwbY2CJia4d2JO0QBvmGffGF7FKftehqkdjmsnyM2ruTRjRHfyym_o",
+    "https://discord.com/api/webhooks/1348527618135162921/dLV77i9TtWtt4aH8WHMML1yk7zge6zhedk4Xxz8ilY45fcJNJ5IaNEBBLvUgxrmjy4DY"
 ]
 
 # Function to get MX record
